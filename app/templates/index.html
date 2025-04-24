@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoMasters</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <link rel="icon" href="../static/images/favicon.png" type="image/x-icon">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="../static/images/logo.png" alt="CryptoTracker Logo">
+            </div>
+            <ul>
+                <li><a href="#">Inicio</a></li>
+                <li><a href="#">Mercados</a></li>
+                <li><a href="#">Noticias</a></li>
+                <li><a href="#">Acerca de</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="market-summary">
+            <div class="summary-item">
+                <h3>Capitalización de mercado</h3>
+                <p id="market-cap">$0</p>
+                <canvas id="marketCapChart"></canvas>
+            </div>
+            <div class="summary-item">
+                <h3>Volumen 24h</h3>
+                <p id="volume-24h">$0</p>
+                <canvas id="volumeChart"></canvas>
+            </div>
+            <div class="summary-item">
+                <h3>Dominio BTC</h3>
+                <p id="btc-dominance">0%</p>
+                <canvas id="btcDominanceChart"></canvas>
+            </div>
+        </section>
+        <table id="cryptoTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th class="name-column">Nombre</th>
+                    <th>Símbolo</th>
+                    <th>Precio</th>
+                    <th>Cambio 24h</th>
+                    <th>Capitalización</th>
+                    <th>Gráfico</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </main>
+    <footer>
+        <p>© 2025 CryptoTracker. Todos los derechos reservados.</p>
+    </footer>
+    <button id="themeToggle">Cambiar Tema</button>
+    <script>
+        fetch('https://api.coingecko.com/api/v3/global')
+            .then(response => response.json())
+            .then(data => {
+                const marketCap = data.data.total_market_cap.usd;
+                const volume24h = data.data.total_volume.usd;
+                const btcDominance = data.data.market_cap_percentage.btc;
+
+                document.getElementById('market-cap').textContent = `$${(marketCap / 1e12).toFixed(2)}T`;
+                document.getElementById('volume-24h').textContent = `$${(volume24h / 1e9).toFixed(2)}B`;
+                document.getElementById('btc-dominance').textContent = `${btcDominance.toFixed(2)}%`;
+
+                new Chart(document.getElementById('marketCapChart'), {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 30 }, (_, i) => i + 1),
+                        datasets: [{
+                            data: Array.from({ length: 30 }, () => Math.random() * marketCap),
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { display: false }, y: { display: false } }
+                    }
+                });
+
+                new Chart(document.getElementById('volumeChart'), {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 30 }, (_, i) => i + 1),
+                        datasets: [{
+                            data: Array.from({ length: 30 }, () => Math.random() * volume24h),
+                            borderColor: '#FF9800',
+                            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { display: false }, y: { display: false } }
+                    }
+                });
+
+                new Chart(document.getElementById('btcDominanceChart'), {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 30 }, (_, i) => i + 1),
+                        datasets: [{
+                            data: Array.from({ length: 30 }, () => Math.random() * btcDominance),
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { display: false }, y: { display: false } }
+                    }
+                });
+            });
+
+        let currentPage = 1;
+        const perPage = 10;
+        let isLoading = false;
+
+        function loadCoins(page) {
+            isLoading = true;
+            fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=true`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector('#cryptoTable tbody');
+
+                    data.forEach((crypto, index) => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-aos', 'fade-up');
+                        row.innerHTML = `
+                            <td>${(page - 1) * perPage + index + 1}</td>
+                            <td>
+                                <div class="crypto-name">
+                                    <img src="${crypto.image}" alt="${crypto.name}" class="crypto-logo">
+                                    ${crypto.name}
+                                </div>
+                            </td>
+                            <td>${crypto.symbol.toUpperCase()}</td>
+                            <td>$${crypto.current_price.toLocaleString()}</td>
+                            <td class="${crypto.price_change_percentage_24h >= 0 ? 'positive' : 'negative'}">
+                                ${crypto.price_change_percentage_24h.toFixed(2)}%
+                            </td>
+                            <td>$${crypto.market_cap.toLocaleString()}</td>
+                            <td>
+                                <canvas id="chart-${crypto.id}" class="crypto-chart"></canvas>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+
+                        const ctx = document.getElementById(`chart-${crypto.id}`).getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: Array.from({ length: crypto.sparkline_in_7d.price.length }, (_, i) => i + 1),
+                                datasets: [{
+                                    data: crypto.sparkline_in_7d.price,
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    borderWidth: 1.5,
+                                    tension: 0.4,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { display: false } },
+                                scales: { x: { display: false }, y: { display: false } }
+                            }
+                        });
+                    });
+
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Error al cargar las monedas:', error);
+                    isLoading = false;
+                });
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 && !isLoading) {
+                currentPage++;
+                loadCoins(currentPage);
+            }
+        });
+
+        loadCoins(currentPage);
+
+        AOS.init({
+            duration: 1000,
+            easing: 'ease-in-out',
+            once: false,
+            offset: 50
+        });
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+    </script>
+</body>
+</html>
